@@ -1,0 +1,312 @@
+{
+  "name": "Curriculum Architect - HITL Pipeline",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -80
+      ],
+      "id": "74e65606-2b1a-4f45-8469-98188972f018",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ad45b2b-f4b3-4fdc-b368-bf4118ae21fb",
+              "name": "Project_Title",
+              "value": "Sustainable Mars Colony",
+              "type": "string"
+            },
+            {
+              "id": "29ffdf35-adad-4646-9785-bbfa41747acf",
+              "name": "Grade_Level",
+              "value": "5th Grade",
+              "type": "string"
+            },
+            {
+              "id": "0df1bb03-8192-4b60-9169-c3f08ea2b2ec",
+              "name": "Competency_Map",
+              "value": "SC.5.1: Ecosystem functioning, SC.5.2: Water filtration and conservation, SC.5.3: Basic thermodynamics and insulation.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -80
+      ],
+      "id": "30b01d6b-c4bf-4a7e-a08e-6f4a6ccf7065",
+      "name": "Mock Inputs"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a curriculum architect. Generate a semester-long curriculum for the following project.\n\nProject Title: {{ $json.Project_Title }}\nGrade Level: {{ $json.Grade_Level }}\nCompetency Map: {{ $json.Competency_Map }}\n\nGenerate a JSON array of exactly 10 sequential sessions. Each session object must have these fields:\n- \"session_id\": integer from 1 to 10\n- \"session_title\": a descriptive title for the session\n- \"mapped_skill_id\": exactly ONE skill ID from this list: \"SC.5.1\", \"SC.5.2\", \"SC.5.3\". Never null. Never multiple. Each session maps to exactly one skill.\n\nCRITICAL RULES:\n- Output ONLY the raw JSON array. No markdown, no backticks, no explanation.\n- Use ONLY skill IDs: SC.5.1, SC.5.2, SC.5.3\n- Distribute skills logically across all 10 sessions. Every single session MUST have a valid mapped_skill_id. There are no exceptions. No 'NULL'\n\nOutput the JSON array now:",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        360,
+        -80
+      ],
+      "id": "1cbf86eb-6455-43f9-93c2-0e83d300396a",
+      "name": "Curriculum Architect"
+    },
+    {
+      "parameters": {
+        "model": "mistral:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        700,
+        -220
+      ],
+      "id": "8cc1c5f5-d6c2-4baf-acb8-084ddb0c23a3",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "KSGi52EMwGGNpffa",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -20,
+        160
+      ],
+      "id": "721be282-5dca-4dd8-83bf-6f9eff08e2cb",
+      "name": "Wait",
+      "webhookId": "3997b160-529e-44c1-bf85-79dc6a4626df"
+    },
+    {
+      "parameters": {
+        "jsCode": "const curriculum = $input.first().json.text;\nconst resumeUrl = $execution.resumeUrl;\n\nconst approveUrl = `${resumeUrl}?decision=approve`;\nconst rejectUrl = `${resumeUrl}?decision=reject`;\n\nconst htmlPage = `\n<html>\n<head><title>Curriculum Review</title></head>\n<body style=\"font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px;\">\n  <h1>Curriculum Review Gate</h1>\n  <h3>Project: Sustainable Mars Colony | Grade: 5th Grade</h3>\n  <hr>\n  <h4>Generated Curriculum (10 Sessions):</h4>\n  <pre style=\"background: #f4f4f4; padding: 15px; border-radius: 8px; overflow-x: auto;\">${curriculum}</pre>\n  <hr>\n  <p><strong>As the Curriculum Director, do you approve this syllabus?</strong></p>\n  <a href=\"${approveUrl}\" style=\"display:inline-block; padding:12px 30px; background:green; color:white; text-decoration:none; border-radius:5px; margin-right:15px; font-size:16px;\">✅ Approve</a>\n  <a href=\"${rejectUrl}\" style=\"display:inline-block; padding:12px 30px; background:red; color:white; text-decoration:none; border-radius:5px; font-size:16px;\">❌ Reject</a>\n</body>\n</html>\n`;\n\nreturn [{ json: { htmlPage, approveUrl, rejectUrl, curriculum } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        -80
+      ],
+      "id": "5b1e3448-5441-4e24-a4fc-5fe64fb7cde8",
+      "name": "Build Review Page"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cd71f093-947e-48a9-9842-e0fadeb5b93c",
+              "leftValue": "={{ $json.query.decision }}",
+              "rightValue": "approve",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        340,
+        300
+      ],
+      "id": "fc6879b1-0ba5-4d06-8349-6ae137729a7e",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        680,
+        140
+      ],
+      "id": "43a7a2f1-ef23-4c5c-86d4-27bffef810a7",
+      "name": "Proceed to Generation Loop"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        640,
+        380
+      ],
+      "id": "e281ca90-bb06-4aeb-b6b1-2694aa523d4e",
+      "name": "End Run - Request Revision"
+    },
+    {
+      "parameters": {
+        "content": "Uses Ollama/Mistral (open-source) with constrained prompt to ensure valid JSON with exact skill ID mapping",
+        "height": 100,
+        "width": 220
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        340,
+        -220
+      ],
+      "typeVersion": 1,
+      "id": "4469c778-3df9-42d9-86b6-f4ef180f2988",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Async HITL gate - workflow fully pauses until human decision via webhook",
+        "height": 80,
+        "width": 220
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -60,
+        320
+      ],
+      "typeVersion": 1,
+      "id": "e927333f-d488-44a7-a525-cc292c7bc3d0",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Routes based on query parameter from reviewer's action",
+        "height": 80,
+        "width": 220
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        280,
+        180
+      ],
+      "typeVersion": 1,
+      "id": "b287aa6a-fcd3-4f23-a72a-e48c0ac0ad1b",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Mock Inputs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mock Inputs": {
+      "main": [
+        [
+          {
+            "node": "Curriculum Architect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Curriculum Architect",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Curriculum Architect": {
+      "main": [
+        [
+          {
+            "node": "Build Review Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Review Page": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Proceed to Generation Loop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "End Run - Request Revision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "75a957ff-ed12-4c3c-82e3-45c86659b5d8",
+  "meta": {
+    "instanceId": "248802a20a446471c4adeca1d7ade5502593b0015f12149b9913c1f1c49aa2b8"
+  },
+  "id": "LeoSVqYV5ayNwjVh",
+  "tags": []
+}
