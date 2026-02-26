@@ -4,6 +4,7 @@ An n8n workflow that generates structured, semester-long curriculums using an LL
 
 ![n8n](https://img.shields.io/badge/n8n-Workflow%20Automation-orange)
 ![Ollama](https://img.shields.io/badge/Ollama-Mistral%207B-blue)
+![Railway](https://img.shields.io/badge/Railway-Deployable-blueviolet)
 ![Status](https://img.shields.io/badge/Status-POC%20Complete-green)
 
 ## Demo
@@ -81,7 +82,7 @@ n8n start
 # 7. Execute the workflow
 ```
 
-## Setup — Docker
+## Setup — Docker Compose (Local)
 
 ```bash
 # Clone the repo
@@ -91,22 +92,43 @@ cd curriculum-architect-hitl
 # Copy and configure environment
 cp .env.example .env
 
-# Start services
+# Start n8n + Postgres
 docker compose up -d
 
 # Open http://localhost:5678 and import the workflow
 ```
 
+## Deploy — Railway (Cloud)
+
+This repo is configured for one-click Railway deployment.
+
+### Steps
+
+1. Fork or clone this repo to your GitHub
+2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub Repo
+3. Select this repository
+4. Railway auto-detects the `Dockerfile` and uses `railway.toml` for the start command
+5. Add these environment variables in Railway's dashboard:
+   - `N8N_HOST` = `0.0.0.0`
+   - `N8N_PORT` = `5678`
+   - `N8N_PROTOCOL` = `https`
+   - `WEBHOOK_URL` = `https://your-app.up.railway.app/`
+6. Deploy — n8n will be live at your Railway public URL
+
+> **Note:** The LLM node uses Ollama (local). For cloud deployment, swap the Ollama Chat Model node for an OpenAI or Anthropic node with your API key, since Ollama can't run on Railway.
+
 ## Project Structure
 
 ```
 curriculum-architect-hitl/
-├── .gitignore
-├── .env.example            # Environment variable template
-├── docker-compose.yml      # Docker setup for n8n + Postgres
+├── .gitignore                                    # Git ignore rules
+├── .env.example                                  # Environment variable template
+├── Dockerfile                                    # Docker config for Railway deployment
+├── docker-compose.yml                            # Local Docker setup (n8n + Postgres)
+├── railway.toml                                  # Railway start command config
 ├── README.md
 └── workflow/
-    └── Curriculum_Architect_HITL_Workflow.json   # n8n workflow export
+    └── Curriculum_Architect_HITL_Workflow.json    # n8n workflow export
 ```
 
 ## Tech Stack
@@ -115,6 +137,7 @@ curriculum-architect-hitl/
 - **Ollama** — Local LLM runtime
 - **Mistral 7B** — Open-source language model
 - **Docker + Postgres** — Production deployment
+- **Railway** — Cloud hosting
 
 ## Author
 
